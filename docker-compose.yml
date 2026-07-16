@@ -50,8 +50,33 @@ services:
     depends_on:
       - api
 
-  # Filled in by teammates E/F and Ola 2:
-  # frontend-admin, frontend-tienda, rpa-bot, docs
+  rpa-bot:
+    build: ./rpa
+    environment:
+      BASE_URL: http://nginx:80
+    profiles: ["rpa"]  # run on demand: docker compose run --rm rpa-bot
+    depends_on:
+      - nginx
+
+  frontend-admin:
+    build:
+      context: ./frontend-admin
+      args:
+        VITE_API_URL: http://localhost:8080
+    ports:
+      - "5173:80"
+    depends_on:
+      - nginx
+
+  frontend-tienda:
+    build:
+      context: ./frontend-tienda
+      args:
+        VITE_API_URL: http://localhost:8080
+    ports:
+      - "5174:80"
+    depends_on:
+      - nginx
 
 volumes:
   pgdata:

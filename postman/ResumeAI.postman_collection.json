@@ -1,0 +1,147 @@
+{
+  "info": {
+    "name": "ResumeAI — Prueba Técnica",
+    "description": "Colección de la API ResumeAI (FastAPI hexagonal). Corre `docker compose up` y usa baseUrl=http://localhost:8080. Ejecuta Login primero para poblar {{token}}.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8080" },
+    { "key": "token", "value": "" },
+    { "key": "bookId", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Register",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/auth/register",
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"editor@resumeai.com\",\n  \"nombre\": \"Editor Demo\",\n  \"password\": \"editor123\",\n  \"rol\": \"Editor\"\n}" }
+          }
+        },
+        {
+          "name": "Login (admin)",
+          "event": [
+            { "listen": "test", "script": { "exec": [
+              "const data = pm.response.json();",
+              "pm.collectionVariables.set('token', data.access_token);",
+              "pm.test('has token', () => pm.expect(data.access_token).to.be.a('string'));"
+            ] } }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/auth/login",
+            "body": { "mode": "raw", "raw": "{\n  \"username\": \"admin\",\n  \"password\": \"admin123\"\n}" }
+          }
+        },
+        {
+          "name": "Me",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/auth/me"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Books (async generation)",
+      "item": [
+        {
+          "name": "Async-process (create book)",
+          "event": [
+            { "listen": "test", "script": { "exec": [
+              "const d = pm.response.json();",
+              "pm.collectionVariables.set('bookId', d.id);"
+            ] } }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": "{{baseUrl}}/transactions/async-process",
+            "body": { "mode": "raw", "raw": "{\n  \"titulo\": \"Inteligencia artificial\",\n  \"precio\": 9.99,\n  \"estilo\": \"Formal\"\n}" }
+          }
+        },
+        {
+          "name": "List published books (public)",
+          "request": { "method": "GET", "url": "{{baseUrl}}/books?estado=procesado" }
+        }
+      ]
+    },
+    {
+      "name": "Sales (transaction create)",
+      "item": [
+        {
+          "name": "Create sale (idempotent)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Idempotency-Key", "value": "{{$guid}}" }
+            ],
+            "url": "{{baseUrl}}/transactions/create",
+            "body": { "mode": "raw", "raw": "{\n  \"monto\": 9.99,\n  \"tipo\": \"venta\",\n  \"libro_id\": {{bookId}}\n}" }
+          }
+        },
+        {
+          "name": "List sales + metrics",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/sales"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Assistant",
+      "item": [
+        {
+          "name": "Summarize",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": "{{baseUrl}}/assistant/summarize",
+            "body": { "mode": "raw", "raw": "{\n  \"term\": \"Inteligencia artificial\",\n  \"style\": \"Formal\"\n}" }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Settings",
+      "item": [
+        {
+          "name": "Get settings",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/settings"
+          }
+        },
+        {
+          "name": "Update settings",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": "{{baseUrl}}/settings",
+            "body": { "mode": "raw", "raw": "{\n  \"default_source\": \"Wikipedia (ES)\",\n  \"default_style\": \"Ejecutivo\"\n}" }
+          }
+        }
+      ]
+    }
+  ]
+}

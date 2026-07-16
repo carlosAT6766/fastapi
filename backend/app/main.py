@@ -16,11 +16,13 @@ from app.contexts.assistant.entrypoints import router as assistant_router
 from app.contexts.auth.entrypoints import router as auth_router
 from app.contexts.settings.entrypoints import router as settings_router
 from app.contexts.transactions.entrypoints import router as transactions_router
+from app.shared.init_db import init_db
 from app.shared.redis import REDIS_SETTINGS
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    await init_db()
     app.state.arq = await create_pool(REDIS_SETTINGS)
     yield
     await app.state.arq.close()
