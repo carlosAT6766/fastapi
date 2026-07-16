@@ -1,0 +1,12 @@
+site_name: ResumeAI — Documentación
+site_description: Arquitectura y decisiones técnicas de la prueba
+theme:
+  name: material
+  palette:
+    primary: indigo
+  language: es
+nav:
+  - Inicio: index.md
+  - Arquitectura: architecture.md
+  - Decisiones técnicas: decisions.md
+  - Cómo correr: running.md

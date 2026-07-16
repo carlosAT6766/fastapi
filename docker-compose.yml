@@ -78,5 +78,15 @@ services:
     depends_on:
       - nginx
 
+  docs:
+    image: squidfunk/mkdocs-material:9
+    command: serve --dev-addr=0.0.0.0:8000 -f /docs/mkdocs.yml
+    working_dir: /docs
+    volumes:
+      - ./docs:/docs
+    ports:
+      - "8000:8000"
+    profiles: ["docs"]  # optional: docker compose --profile docs up docs
+
 volumes:
   pgdata:
