@@ -36,7 +36,7 @@ from ..application.use_cases import (
     RequestBookGeneration,
 )
 from ..domain.errors import BookNotFoundError, BookNotSellableError
-from ..domain.events import EVENT_STATUS_CHANGED, transaction_event
+from ..domain.events import EVENT_SNAPSHOT, transaction_event
 from ..infrastructure.event_publisher import RedisEventPublisher
 from ..infrastructure.repository import SqlAlchemyTransactionRepository
 from ..infrastructure.ws_stream import extract_token, forward_events
@@ -190,7 +190,7 @@ async def stream(
     repository = SqlAlchemyTransactionRepository(session)
     snapshot = await GetTransactionsSnapshot(repository).execute(user_id=user_id)
     for transaction in snapshot:
-        await websocket.send_json(transaction_event(transaction, EVENT_STATUS_CHANGED))
+        await websocket.send_json(transaction_event(transaction, EVENT_SNAPSHOT))
 
     with suppress(WebSocketDisconnect):
         await forward_events(websocket, user_id)

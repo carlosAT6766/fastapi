@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Sidebar } from './Sidebar';
 import { BooksPage } from '../books/BooksPage';
 import { CreateBookDialog } from '../books/CreateBookDialog';
@@ -28,6 +28,8 @@ export function Shell() {
   const [users, setUsers] = useState([]);
   const [settings, setSettings] = useState({ defaultSource: 'Wikipedia (ES)', defaultStyle: 'Formal' });
 
+  const seenSaleIds = useRef(new Set());
+
   const [createOpen, setCreateOpen] = useState(false);
   const [userOpen, setUserOpen] = useState(false);
   const [editBook, setEditBook] = useState(null);
@@ -48,7 +50,12 @@ export function Shell() {
   // Initial data load. Failures degrade gracefully (endpoints may land in Ola 2).
   useEffect(() => {
     fetchBooks().then(setBooks).catch(() => notify('No se pudieron cargar los libros', 'warning'));
-    fetchSales().then(setSales).catch(() => {});
+    fetchSales()
+      .then((initial) => {
+        initial.forEach((s) => seenSaleIds.current.add(s.id));
+        setSales(initial);
+      })
+      .catch(() => {});
     fetchUsers().then(setUsers).catch(() => {});
     fetchSettings().then(setSettings).catch(() => {});
   }, [notify]);
@@ -56,18 +63,23 @@ export function Shell() {
   // Live updates over WebSocket: refresh table + fire toasts on status changes.
   useEffect(() => {
     const disconnect = connectStream({
-      onBook: (book) => {
+      onBook: (book, meta = {}) => {
         upsertBook(book);
+        if (meta.snapshot) return; // initial sync — no notification
         const info = statusInfo(book.status);
         if (book.status === 'listo') notify(`Resumen de "${book.title}" listo`, 'success');
         else if (book.status === 'fallido') notify(`Falló la generación de "${book.title}"`, 'error');
         else notify(`"${book.title}": ${info.label}`, 'info');
       },
-      onSale: (raw) => {
+      onSale: (raw, meta = {}) => {
         const sale = toSale(raw);
-        setSales((current) =>
-          current.some((s) => s.id === sale.id) ? current : [sale, ...current],
-        );
+        if (seenSaleIds.current.has(sale.id)) return;
+        seenSaleIds.current.add(sale.id);
+        setSales((current) => [sale, ...current]);
+        if (meta.snapshot) return; // initial sync — no notification
+        // PDF: notify when a transaction changes state (a sale arriving in real time).
+        const title = sale.bookTitle && sale.bookTitle !== '—' ? sale.bookTitle : 'un libro';
+        notify(`Venta registrada: "${title}" · $${Number(sale.amount).toFixed(2)}`, 'success');
       },
       onLog: ({ id, line }) =>
         setBooks((current) =>
@@ -107,6 +119,7 @@ export function Shell() {
     }
     try {
       const sale = await sellBook(book);
+      seenSaleIds.current.add(sale.id);
       setSales((current) => [{ ...sale, bookTitle: sale.bookTitle || book.title }, ...current]);
       notify(`Venta registrada: "${book.title}"`, 'success');
     } catch (err) {

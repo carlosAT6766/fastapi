@@ -32,13 +32,15 @@ export function connectStream({ onBook, onSale, onLog, onStatus }) {
       } catch {
         return;
       }
+      // Snapshot events (sent on connect) sync state but must not raise toasts.
+      const meta = { snapshot: msg.event === 'snapshot' };
       // Wrapped envelope: { type: 'book'|'sale'|'log', payload }
-      if (msg.type === 'book') onBook?.(toBook(msg.payload));
-      else if (msg.type === 'sale') onSale?.(msg.payload);
+      if (msg.type === 'book') onBook?.(toBook(msg.payload), meta);
+      else if (msg.type === 'sale') onSale?.(msg.payload, meta);
       else if (msg.type === 'log') onLog?.(msg.payload); // { id, line }
       // Flat backend envelope (transaction_event): route by `tipo`.
-      else if (msg.tipo === 'venta') onSale?.(msg);
-      else if (msg.tipo === 'libro' || msg.titulo) onBook?.(toBook(msg));
+      else if (msg.tipo === 'venta') onSale?.(msg, meta);
+      else if (msg.tipo === 'libro' || msg.titulo) onBook?.(toBook(msg), meta);
     };
 
     socket.onclose = () => {

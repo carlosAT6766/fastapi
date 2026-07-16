@@ -11,6 +11,7 @@ from app.shared.models import Transaction
 
 EVENT_CREATED = "created"
 EVENT_STATUS_CHANGED = "status_changed"
+EVENT_SNAPSHOT = "snapshot"  # initial state sent on WS connect; must not raise notifications
 
 
 def _to_float(value: Any) -> float | None:
