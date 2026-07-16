@@ -71,6 +71,7 @@ class TransactionOut(BaseModel):
     resumen: str | None = None
     monto: float | None = None
     libro_id: int | None = None
+    libro_titulo: str | None = None
     created_at: datetime | None = None
 
     model_config = {"from_attributes": True}

@@ -32,10 +32,12 @@ export function connectStream({ onBook, onSale, onLog, onStatus }) {
       } catch {
         return;
       }
-      // Expected envelope: { type: 'book'|'sale'|'log', payload }
+      // Wrapped envelope: { type: 'book'|'sale'|'log', payload }
       if (msg.type === 'book') onBook?.(toBook(msg.payload));
       else if (msg.type === 'sale') onSale?.(msg.payload);
       else if (msg.type === 'log') onLog?.(msg.payload); // { id, line }
+      // Flat backend envelope (transaction_event): route by `tipo`.
+      else if (msg.tipo === 'venta') onSale?.(msg);
       else if (msg.tipo === 'libro' || msg.titulo) onBook?.(toBook(msg));
     };
 

@@ -3,6 +3,7 @@
 from sqlalchemy import select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import aliased
 
 from app.shared.models import (
     KIND_BOOK,
@@ -87,14 +88,39 @@ class SqlAlchemyTransactionRepository:
         result = await self._session.scalars(query.order_by(Transaction.created_at.desc()))
         return list(result)
 
-    async def list_sales(self, user_id: int) -> list[Transaction]:
-        query = select(Transaction).where(
-            Transaction.tipo == KIND_SALE, Transaction.user_id == user_id
+    def _owned_book_ids(self, user_id: int):
+        """Subquery: ids of the books owned (created) by this user."""
+        return select(Transaction.id).where(
+            Transaction.tipo == KIND_BOOK, Transaction.user_id == user_id
         )
-        result = await self._session.scalars(query.order_by(Transaction.created_at.desc()))
-        return list(result)
+
+    async def list_sales(self, user_id: int) -> list[Transaction]:
+        """Sales of the user's own books (seller view), each enriched with the book title."""
+        book = aliased(Transaction)
+        query = (
+            select(Transaction, book.titulo)
+            .join(book, Transaction.libro_id == book.id)
+            .where(
+                Transaction.tipo == KIND_SALE,
+                Transaction.libro_id.in_(self._owned_book_ids(user_id)),
+            )
+            .order_by(Transaction.created_at.desc())
+        )
+        rows = await self._session.execute(query)
+        sales: list[Transaction] = []
+        for sale, book_title in rows:
+            sale.libro_titulo = book_title  # transient attribute for serialization
+            sales.append(sale)
+        return sales
 
     async def snapshot(self, user_id: int) -> list[Transaction]:
-        query = select(Transaction).where(Transaction.user_id == user_id)
+        """The user's own books plus the sales of those books (for the WS connect snapshot)."""
+        query = select(Transaction).where(
+            (Transaction.user_id == user_id)
+            | (
+                (Transaction.tipo == KIND_SALE)
+                & Transaction.libro_id.in_(self._owned_book_ids(user_id))
+            )
+        )
         result = await self._session.scalars(query.order_by(Transaction.created_at.desc()))
         return list(result)

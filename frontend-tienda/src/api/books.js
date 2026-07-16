@@ -20,11 +20,12 @@ function normalizeBook(raw) {
 }
 
 function isPublished(book) {
-  return book.estado === 'listo' && Number(book.precio ?? book.price ?? 0) > 0;
+  // GET /books already returns only published (procesado) books; keep a price guard.
+  return Number(book.precio ?? book.price ?? 0) > 0;
 }
 
 export async function fetchPublishedBooks() {
-  const data = await apiClient.request('/books?estado=listo');
+  const data = await apiClient.request('/books');
   const list = Array.isArray(data) ? data : (data?.items ?? []);
   return list.filter(isPublished).map(normalizeBook);
 }

@@ -40,7 +40,12 @@ class RegisterSale:
             idempotency_key=idempotency_key,
         )
         if created:
-            await self._publisher.publish(user_id, transaction_event(sale, EVENT_CREATED))
+            # Notify the seller (book owner), not the buyer, so the admin's
+            # Ventas view updates live over the WebSocket. Enrich with the book
+            # title so the UI can show it (the sale row itself has no title).
+            event = transaction_event(sale, EVENT_CREATED)
+            event["libro_titulo"] = book.titulo
+            await self._publisher.publish(book.user_id, event)
         return sale, created
 
 

@@ -63,7 +63,12 @@ export function Shell() {
         else if (book.status === 'fallido') notify(`Falló la generación de "${book.title}"`, 'error');
         else notify(`"${book.title}": ${info.label}`, 'info');
       },
-      onSale: (raw) => setSales((current) => [toSale(raw), ...current]),
+      onSale: (raw) => {
+        const sale = toSale(raw);
+        setSales((current) =>
+          current.some((s) => s.id === sale.id) ? current : [sale, ...current],
+        );
+      },
       onLog: ({ id, line }) =>
         setBooks((current) =>
           current.map((b) => (b.id === id ? { ...b, log: [...(b.log || []), line] } : b)),

@@ -19,11 +19,20 @@ _SUBPROTOCOL_SEPARATOR = ","
 
 
 def extract_token(websocket: WebSocket) -> str | None:
-    """Read the JWT from the Sec-WebSocket-Protocol header (subprotocol auth)."""
+    """Read the JWT from the Sec-WebSocket-Protocol header (subprotocol auth).
+
+    The client offers ["bearer", <jwt>]; skip the "bearer" marker and return the
+    actual token.
+    """
     header = websocket.headers.get("sec-websocket-protocol")
     if not header:
         return None
-    return header.split(_SUBPROTOCOL_SEPARATOR)[0].strip()
+    parts = [p.strip() for p in header.split(_SUBPROTOCOL_SEPARATOR) if p.strip()]
+    if not parts:
+        return None
+    if len(parts) >= 2 and parts[0].lower() == "bearer":
+        return parts[1]
+    return parts[0]
 
 
 async def forward_events(websocket: WebSocket, user_id: int) -> None:
