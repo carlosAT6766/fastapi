@@ -2,11 +2,11 @@
 
 from dataclasses import dataclass
 
-DEFAULT_SOURCE = "Wikipedia (ES)"
+DEFAULT_SOURCE = "Wikipedia + DBpedia (ES)"
 DEFAULT_STYLE = "Formal"
 
 VALID_SOURCES: frozenset[str] = frozenset(
-    {"Wikipedia (ES)", "Wikipedia (EN)", "Wikipedia (PT)"}
+    {"Wikipedia + DBpedia (ES)", "Wikipedia (ES)", "Wikipedia (EN)", "Wikipedia (PT)"}
 )
 VALID_STYLES: frozenset[str] = frozenset(
     {"Formal", "Casual", "Técnico", "Ejecutivo", "Divertido"}

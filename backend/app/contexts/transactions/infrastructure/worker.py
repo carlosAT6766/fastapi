@@ -27,7 +27,7 @@ from ..domain.events import EVENT_STATUS_CHANGED, transaction_event
 
 SUB_STATE_SEARCHING = "buscando"
 SUB_STATE_SUMMARIZING = "resumiendo"
-DEFAULT_SOURCE = "Wikipedia (ES)"
+DEFAULT_SOURCE = "Wikipedia + DBpedia (ES)"
 DEFAULT_STYLE = "Formal"
 
 

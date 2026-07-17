@@ -1,7 +1,7 @@
 import { Fragment, useState } from 'react';
 import { IconButton, Menu, MenuItem, ListItemIcon, ListItemText } from '@mui/material';
 
-// Row kebab menu: Ver / Vender / Descargar PDF / Editar.
+// Row kebab menu: Ver / Publicar / Descargar PDF / Editar.
 // Icons are inline SVG lifted from the design's mui-theme.jsx (MuiRowActionsMenu).
 const dotsIcon = (
   <svg width="18" height="18" viewBox="0 0 18 18" fill="currentColor">
@@ -37,7 +37,7 @@ const sellIcon = (
   </svg>
 );
 
-export function RowActionsMenu({ onView, onSell, sellDisabled, onPdf, pdfDisabled, onEdit }) {
+export function RowActionsMenu({ onView, onPublish, publishDisabled, onPdf, pdfDisabled, onEdit }) {
   const [anchorEl, setAnchorEl] = useState(null);
   const open = Boolean(anchorEl);
   const close = () => setAnchorEl(null);
@@ -56,9 +56,9 @@ export function RowActionsMenu({ onView, onSell, sellDisabled, onPdf, pdfDisable
           <ListItemIcon sx={{ minWidth: 30 }}>{eyeIcon}</ListItemIcon>
           <ListItemText>Ver</ListItemText>
         </MenuItem>
-        <MenuItem onClick={wrap(onSell)} disabled={sellDisabled}>
+        <MenuItem onClick={wrap(onPublish)} disabled={publishDisabled}>
           <ListItemIcon sx={{ minWidth: 30 }}>{sellIcon}</ListItemIcon>
-          <ListItemText>Vender</ListItemText>
+          <ListItemText>Publicar</ListItemText>
         </MenuItem>
         <MenuItem onClick={wrap(onPdf)} disabled={pdfDisabled}>
           <ListItemIcon sx={{ minWidth: 30 }}>{downloadIcon}</ListItemIcon>

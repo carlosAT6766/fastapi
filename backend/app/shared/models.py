@@ -71,6 +71,8 @@ class Transaction(Base):
     estilo: Mapped[str | None] = mapped_column(String(30), nullable=True)
     resumen: Mapped[str | None] = mapped_column(Text, nullable=True)
     log: Mapped[list | None] = mapped_column(JSONB, nullable=True, default=list)
+    # A ready book is shown in the storefront only after the admin publishes it.
+    publicado: Mapped[bool] = mapped_column(Boolean, default=False)
 
     # tipo == "venta"
     monto: Mapped[float | None] = mapped_column(Numeric(14, 2), nullable=True)
@@ -83,7 +85,7 @@ class UserSettings(Base):
     __tablename__ = "user_settings"
 
     user_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("users.id"), primary_key=True)
-    default_source: Mapped[str] = mapped_column(String(30), default="Wikipedia (ES)")
+    default_source: Mapped[str] = mapped_column(String(30), default="Wikipedia + DBpedia (ES)")
     default_style: Mapped[str] = mapped_column(String(30), default="Formal")
 
     user: Mapped[User] = relationship(back_populates="settings")

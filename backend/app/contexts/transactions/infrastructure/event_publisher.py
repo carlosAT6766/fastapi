@@ -6,7 +6,7 @@ the concrete Redis helper.
 
 from typing import Any
 
-from app.shared.events import publish_transaction_event
+from app.shared.events import publish_storefront_event, publish_transaction_event
 
 
 class RedisEventPublisher:
@@ -14,3 +14,6 @@ class RedisEventPublisher:
 
     async def publish(self, user_id: int, event: dict[str, Any]) -> None:
         await publish_transaction_event(user_id, event)
+
+    async def publish_storefront(self, event: dict[str, Any]) -> None:
+        await publish_storefront_event(event)

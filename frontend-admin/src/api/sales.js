@@ -7,14 +7,3 @@ export async function fetchSales() {
   const list = Array.isArray(data) ? data : (data.sales ?? data.items ?? []);
   return list.map(toSale);
 }
-
-// POST /transactions/create -> idempotent sale of a "listo" book.
-// Requires an Idempotency-Key header (T2).
-export async function sellBook(book) {
-  const raw = await apiClient.post(
-    '/transactions/create',
-    { tipo: 'venta', monto: Number(book.price), libro_id: book.id },
-    { headers: { 'Idempotency-Key': crypto.randomUUID() } },
-  );
-  return toSale(raw);
-}

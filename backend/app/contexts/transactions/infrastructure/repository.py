@@ -78,11 +78,37 @@ class SqlAlchemyTransactionRepository:
         await self._session.refresh(book)
         return book
 
+    async def update_book(
+        self, *, book_id: int, titulo: str, precio: float, estilo: str, resumen: str | None
+    ) -> Transaction | None:
+        """Update an existing book's editable fields; None if it does not exist."""
+        book = await self.get_book(book_id)
+        if book is None:
+            return None
+        book.titulo = titulo
+        book.precio = precio
+        book.estilo = estilo
+        book.resumen = resumen
+        await self._session.commit()
+        await self._session.refresh(book)
+        return book
+
+    async def publish_book(self, book_id: int) -> Transaction | None:
+        """Mark a book as published (visible in the storefront); None if missing."""
+        book = await self.get_book(book_id)
+        if book is None:
+            return None
+        book.publicado = True
+        await self._session.commit()
+        await self._session.refresh(book)
+        return book
+
     async def list_books(self, estado: str | None) -> list[Transaction]:
         query = select(Transaction).where(
             Transaction.tipo == KIND_BOOK,
             Transaction.precio.is_not(None),
             Transaction.precio > 0,
+            Transaction.publicado.is_(True),
             Transaction.estado == (estado or STATUS_PROCESSED),
         )
         result = await self._session.scalars(query.order_by(Transaction.created_at.desc()))

@@ -4,7 +4,7 @@ import { apiClient } from './client';
 export async function fetchSettings() {
   const data = await apiClient.get('/settings');
   return {
-    defaultSource: data.fuente_default ?? data.defaultSource ?? 'Wikipedia (ES)',
+    defaultSource: data.fuente_default ?? data.defaultSource ?? 'Wikipedia + DBpedia (ES)',
     defaultStyle: data.estilo_default ?? data.defaultStyle ?? 'Formal',
   };
 }

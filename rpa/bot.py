@@ -8,6 +8,7 @@ import os
 import sys
 
 import httpx
+from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
 from playwright.sync_api import sync_playwright
 
 BASE_URL = os.getenv("BASE_URL", "http://nginx:80")
@@ -18,16 +19,21 @@ WIKI_LANG = os.getenv("WIKI_LANG", "es")
 
 MIN_PARAGRAPH_LENGTH = 40
 HTTP_TIMEOUT_SECONDS = 30.0
-PARAGRAPH_SELECTOR = ".mw-parser-output > p"
+PARAGRAPH_SELECTOR = "#mw-content-text .mw-parser-output p"
 
 BROWSER_ARGS = ["--no-sandbox", "--disable-dev-shm-usage"]
+# Wikipedia serves a stripped page (no .mw-parser-output) to the default headless UA.
+BROWSER_USER_AGENT = (
+    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
+    "(KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36"
+)
 
 
 def login() -> str:
     """Authenticate against the API and return the JWT access token."""
     response = httpx.post(
         f"{BASE_URL}/auth/login",
-        data={"username": ADMIN_USERNAME, "password": ADMIN_PASSWORD},
+        json={"username": ADMIN_USERNAME, "password": ADMIN_PASSWORD},
         timeout=HTTP_TIMEOUT_SECONDS,
     )
     response.raise_for_status()
@@ -39,8 +45,13 @@ def extract_first_paragraph(term: str) -> str:
     url = f"https://{WIKI_LANG}.wikipedia.org/wiki/{term.replace(' ', '_')}"
     with sync_playwright() as playwright:
         browser = playwright.chromium.launch(headless=True, args=BROWSER_ARGS)
-        page = browser.new_page()
+        context = browser.new_context(user_agent=BROWSER_USER_AGENT)
+        page = context.new_page()
         page.goto(url, wait_until="domcontentloaded")
+        try:
+            page.wait_for_selector(PARAGRAPH_SELECTOR, timeout=15000)
+        except PlaywrightTimeoutError:
+            print(f"[rpa] selector wait timed out, title={page.title()!r} url={page.url}")
         for paragraph in page.query_selector_all(PARAGRAPH_SELECTOR):
             text = (paragraph.inner_text() or "").strip()
             if len(text) > MIN_PARAGRAPH_LENGTH:

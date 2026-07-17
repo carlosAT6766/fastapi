@@ -16,3 +16,8 @@ REDIS_SETTINGS = RedisSettings(
 def user_channel(user_id: int) -> str:
     """Pub/sub channel a WebSocket connection subscribes to for its own events."""
     return f"tx:user:{user_id}"
+
+
+# Public broadcast channel: storefront (all customers) listens for catalog changes
+# such as a newly published book, so the storefront updates without a reload.
+STOREFRONT_CHANNEL = "storefront"

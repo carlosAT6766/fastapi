@@ -11,7 +11,7 @@ from redis.asyncio import Redis
 from starlette.websockets import WebSocket, WebSocketState
 
 from app.shared.config import get_settings
-from app.shared.redis import user_channel
+from app.shared.redis import STOREFRONT_CHANNEL, user_channel
 
 settings = get_settings()
 
@@ -35,11 +35,11 @@ def extract_token(websocket: WebSocket) -> str | None:
     return parts[0]
 
 
-async def forward_events(websocket: WebSocket, user_id: int) -> None:
-    """Subscribe to the user's channel and forward each message to the socket."""
+async def _forward_channel(websocket: WebSocket, channel: str) -> None:
+    """Subscribe to a Redis channel and forward each message to the socket."""
     client = Redis(host=settings.redis_host, port=settings.redis_port, db=settings.redis_db)
     pubsub = client.pubsub()
-    await pubsub.subscribe(user_channel(user_id))
+    await pubsub.subscribe(channel)
     try:
         while websocket.application_state == WebSocketState.CONNECTED:
             message = await pubsub.get_message(ignore_subscribe_messages=True, timeout=1.0)
@@ -49,6 +49,16 @@ async def forward_events(websocket: WebSocket, user_id: int) -> None:
             else:
                 await asyncio.sleep(0)
     finally:
-        await pubsub.unsubscribe(user_channel(user_id))
+        await pubsub.unsubscribe(channel)
         await pubsub.aclose()
         await client.aclose()
+
+
+async def forward_events(websocket: WebSocket, user_id: int) -> None:
+    """Forward a single user's events to their authenticated socket."""
+    await _forward_channel(websocket, user_channel(user_id))
+
+
+async def forward_storefront_events(websocket: WebSocket) -> None:
+    """Forward public storefront catalog events to an anonymous socket."""
+    await _forward_channel(websocket, STOREFRONT_CHANNEL)

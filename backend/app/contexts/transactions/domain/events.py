@@ -33,5 +33,6 @@ def transaction_event(transaction: Transaction, event: str) -> dict[str, Any]:
         "monto": _to_float(transaction.monto),
         "libro_id": transaction.libro_id,
         "resumen": transaction.resumen,
+        "publicado": transaction.publicado,
         "ts": datetime.now(UTC).isoformat(),
     }

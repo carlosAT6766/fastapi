@@ -24,6 +24,7 @@ const COLUMNS = (handlers) => [
     header: 'Estado',
     width: '0.9fr',
     render: (b) => {
+      if (b.published) return <Chip size="small" label="publicado" color="primary" />;
       const info = statusInfo(b.status);
       return <Chip size="small" label={info.label} color={info.color} />;
     },
@@ -42,8 +43,8 @@ const COLUMNS = (handlers) => [
       return (
         <RowActionsMenu
           onView={() => handlers.onView(b)}
-          onSell={() => handlers.onSell(b)}
-          sellDisabled={notReady || !b.price}
+          onPublish={() => handlers.onPublish(b)}
+          publishDisabled={notReady || !b.price || b.published}
           onPdf={() => handlers.onPdf(b)}
           pdfDisabled={notReady || !b.summary}
           onEdit={() => handlers.onEdit(b)}
@@ -53,7 +54,7 @@ const COLUMNS = (handlers) => [
   },
 ];
 
-export function BooksPage({ books, onCreate, onView, onSell, onPdf, onEdit }) {
+export function BooksPage({ books, onCreate, onView, onPublish, onPdf, onEdit }) {
   const metrics = {
     total: books.length,
     ready: books.filter((b) => b.status === 'listo').length,
@@ -79,7 +80,7 @@ export function BooksPage({ books, onCreate, onView, onSell, onPdf, onEdit }) {
       </StatGrid>
 
       <DataTable
-        columns={COLUMNS({ onView, onSell, onPdf, onEdit })}
+        columns={COLUMNS({ onView, onPublish, onPdf, onEdit })}
         rows={books}
         getRowKey={(b) => b.id}
         emptyMessage="Aún no hay libros. Crea el primero con el botón de arriba."

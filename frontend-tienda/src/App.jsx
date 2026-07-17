@@ -6,6 +6,7 @@ import ToastStack from './components/ToastStack';
 import { useToasts } from './hooks/useToasts';
 import { fetchPublishedBooks } from './api/books';
 import { purchaseBook } from './api/transactions';
+import { connectStorefront } from './api/storefront';
 
 export default function App() {
   const [books, setBooks] = useState([]);
@@ -29,6 +30,17 @@ export default function App() {
   useEffect(() => {
     loadBooks();
   }, [loadBooks]);
+
+  // Live catalog: silently refetch when the admin publishes a book (no spinner).
+  useEffect(
+    () =>
+      connectStorefront(() => {
+        fetchPublishedBooks()
+          .then(setBooks)
+          .catch(() => {});
+      }),
+    [],
+  );
 
   const handleBuy = useCallback(
     async (book) => {

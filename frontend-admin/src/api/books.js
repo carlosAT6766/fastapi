@@ -19,6 +19,12 @@ export async function createBook({ title, price, style }) {
   return toBook(raw);
 }
 
+// POST /books/{id}/publish -> make a ready book visible in the storefront
+export async function publishBook(id) {
+  const raw = await apiClient.post(`/books/${id}/publish`, {});
+  return toBook(raw);
+}
+
 // PATCH /books/{id} -> edit a book (title/price/style/summary)
 export async function updateBook(id, { title, price, style, summary }) {
   const raw = await apiClient.patch(`/books/${id}`, {

@@ -22,6 +22,7 @@ export function toBook(raw) {
     style: raw.estilo ?? raw.style ?? 'Formal',
     status: deriveStatus(raw),
     summary: raw.resumen ?? raw.summary ?? '',
+    published: raw.publicado ?? raw.published ?? false,
     log: raw.log ?? [],
     createdAt: raw.created_at ?? raw.createdAt ?? Date.now(),
   };

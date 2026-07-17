@@ -9,6 +9,7 @@ export const STYLE_OPTIONS = [
 ];
 
 export const SOURCE_OPTIONS = [
+  { value: 'Wikipedia + DBpedia (ES)', label: 'Wikipedia + DBpedia (Español)' },
   { value: 'Wikipedia (ES)', label: 'Wikipedia (Español)' },
   { value: 'Wikipedia (EN)', label: 'Wikipedia (Inglés)' },
   { value: 'Wikipedia (PT)', label: 'Wikipedia (Portugués)' },

@@ -36,6 +36,18 @@ class TransactionRepository(Protocol):
         estilo: str,
     ) -> Transaction: ...
 
+    async def update_book(
+        self,
+        *,
+        book_id: int,
+        titulo: str,
+        precio: float,
+        estilo: str,
+        resumen: str | None,
+    ) -> Transaction | None: ...
+
+    async def publish_book(self, book_id: int) -> Transaction | None: ...
+
     async def list_books(self, estado: str | None) -> list[Transaction]: ...
 
     async def list_sales(self, user_id: int) -> list[Transaction]: ...
@@ -47,3 +59,7 @@ class EventPublisher(Protocol):
     """Fan-out port: publishes events to a user's channel for the WebSocket."""
 
     async def publish(self, user_id: int, event: dict[str, Any]) -> None: ...
+
+    async def publish_storefront(self, event: dict[str, Any]) -> None:
+        """Broadcast a catalog change to every storefront client."""
+        ...

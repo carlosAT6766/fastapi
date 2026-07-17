@@ -10,7 +10,7 @@ from typing import Any
 from redis.asyncio import Redis
 
 from app.shared.config import get_settings
-from app.shared.redis import user_channel
+from app.shared.redis import STOREFRONT_CHANNEL, user_channel
 
 settings = get_settings()
 
@@ -24,5 +24,14 @@ async def publish_transaction_event(user_id: int, event: dict[str, Any]) -> None
     client = _client()
     try:
         await client.publish(user_channel(user_id), json.dumps(event, default=str))
+    finally:
+        await client.aclose()
+
+
+async def publish_storefront_event(event: dict[str, Any]) -> None:
+    """Broadcast a catalog change to the public storefront channel."""
+    client = _client()
+    try:
+        await client.publish(STOREFRONT_CHANNEL, json.dumps(event, default=str))
     finally:
         await client.aclose()

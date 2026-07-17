@@ -7,7 +7,7 @@ are reused identically by any entrypoint.
 from app.shared.models import STATUS_PENDING, STATUS_PROCESSED, Transaction
 
 from ..domain.errors import BookNotFoundError, BookNotSellableError
-from ..domain.events import EVENT_CREATED, transaction_event
+from ..domain.events import EVENT_CREATED, EVENT_STATUS_CHANGED, transaction_event
 from .ports import EventPublisher, TransactionRepository
 
 SUB_STATE_SEARCHING = "buscando"
@@ -66,6 +66,53 @@ class RequestBookGeneration:
         return book
 
 
+class UpdateBook:
+    """Edit an existing book's title/price/style/summary (PATCH /books/{id})."""
+
+    def __init__(self, repository: TransactionRepository, publisher: EventPublisher) -> None:
+        self._repository = repository
+        self._publisher = publisher
+
+    async def execute(
+        self,
+        *,
+        book_id: int,
+        titulo: str,
+        precio: float,
+        estilo: str,
+        resumen: str | None,
+    ) -> Transaction:
+        book = await self._repository.update_book(
+            book_id=book_id, titulo=titulo, precio=precio, estilo=estilo, resumen=resumen
+        )
+        if book is None:
+            raise BookNotFoundError(f"Book {book_id} does not exist")
+        await self._publisher.publish(book.user_id, transaction_event(book, EVENT_STATUS_CHANGED))
+        return book
+
+
+class PublishBook:
+    """Make a ready book visible in the storefront (POST /books/{id}/publish)."""
+
+    def __init__(self, repository: TransactionRepository, publisher: EventPublisher) -> None:
+        self._repository = repository
+        self._publisher = publisher
+
+    async def execute(self, *, book_id: int) -> Transaction:
+        book = await self._repository.get_book(book_id)
+        if book is None:
+            raise BookNotFoundError(f"Book {book_id} does not exist")
+        if book.estado != STATUS_PROCESSED:
+            raise BookNotSellableError(f"Book {book_id} must be ready before publishing")
+        published = await self._repository.publish_book(book_id)
+        # Broadcast to the public storefront channel so every open storefront
+        # refreshes its catalog live. The acting admin still updates optimistically.
+        await self._publisher.publish_storefront(
+            transaction_event(published, EVENT_STATUS_CHANGED)
+        )
+        return published
+
+
 class ListPublishedBooks:
     """Public storefront listing (GET /books)."""
 
@@ -105,6 +152,8 @@ __all__ = [
     "GetTransactionsSnapshot",
     "ListPublishedBooks",
     "ListUserSales",
+    "PublishBook",
     "RegisterSale",
     "RequestBookGeneration",
+    "UpdateBook",
 ]

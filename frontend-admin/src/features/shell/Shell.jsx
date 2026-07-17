@@ -12,8 +12,8 @@ import { PrintArea } from '../print/PrintArea';
 import { Toasts } from '../../components/Toasts';
 import { useToasts } from '../../hooks/useToasts';
 import { statusInfo } from '../../constants';
-import { fetchBooks, createBook, updateBook } from '../../api/books';
-import { fetchSales, sellBook } from '../../api/sales';
+import { fetchBooks, createBook, updateBook, publishBook } from '../../api/books';
+import { fetchSales } from '../../api/sales';
 import { fetchUsers, createUser, updateUser, deleteUser } from '../../api/users';
 import { fetchSettings, saveSettings } from '../../api/settings';
 import { connectStream } from '../../api/websocket';
@@ -26,7 +26,7 @@ export function Shell() {
   const [books, setBooks] = useState([]);
   const [sales, setSales] = useState([]);
   const [users, setUsers] = useState([]);
-  const [settings, setSettings] = useState({ defaultSource: 'Wikipedia (ES)', defaultStyle: 'Formal' });
+  const [settings, setSettings] = useState({ defaultSource: 'Wikipedia + DBpedia (ES)', defaultStyle: 'Formal' });
 
   const seenSaleIds = useRef(new Set());
 
@@ -112,18 +112,17 @@ export function Shell() {
     }
   };
 
-  const handleSell = async (book) => {
+  const handlePublish = async (book) => {
     if (book.status !== 'listo' || !book.price) {
-      notify('El libro debe estar listo y tener precio para venderse', 'warning');
+      notify('El libro debe estar listo y tener precio para publicarse', 'warning');
       return;
     }
     try {
-      const sale = await sellBook(book);
-      seenSaleIds.current.add(sale.id);
-      setSales((current) => [{ ...sale, bookTitle: sale.bookTitle || book.title }, ...current]);
-      notify(`Venta registrada: "${book.title}"`, 'success');
+      const published = await publishBook(book.id);
+      upsertBook(published);
+      notify(`"${book.title}" publicado en la tienda`, 'success');
     } catch (err) {
-      notify(err.message || 'No se pudo registrar la venta', 'error');
+      notify(err.message || 'No se pudo publicar el libro', 'error');
     }
   };
 
@@ -185,7 +184,7 @@ export function Shell() {
               books={books}
               onCreate={() => setCreateOpen(true)}
               onView={setViewBook}
-              onSell={handleSell}
+              onPublish={handlePublish}
               onPdf={handlePdf}
               onEdit={setEditBook}
             />

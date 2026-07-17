@@ -32,14 +32,20 @@ from ..application.use_cases import (
     GetTransactionsSnapshot,
     ListPublishedBooks,
     ListUserSales,
+    PublishBook,
     RegisterSale,
     RequestBookGeneration,
+    UpdateBook,
 )
 from ..domain.errors import BookNotFoundError, BookNotSellableError
 from ..domain.events import EVENT_SNAPSHOT, transaction_event
 from ..infrastructure.event_publisher import RedisEventPublisher
 from ..infrastructure.repository import SqlAlchemyTransactionRepository
-from ..infrastructure.ws_stream import extract_token, forward_events
+from ..infrastructure.ws_stream import (
+    extract_token,
+    forward_events,
+    forward_storefront_events,
+)
 
 router = APIRouter(tags=["transactions"])
 
@@ -77,12 +83,20 @@ class TransactionOut(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class BookUpdate(BaseModel):
+    titulo: str = Field(min_length=1)
+    precio: float = Field(gt=0)
+    estilo: str = Field(min_length=1)
+    resumen: str | None = None
+
+
 class BookOut(BaseModel):
     id: int
     titulo: str | None = None
     precio: float | None = None
     estilo: str | None = None
     resumen: str | None = None
+    publicado: bool = False
     created_at: datetime | None = None
 
     model_config = {"from_attributes": True}
@@ -157,6 +171,43 @@ async def list_books(
     return await ListPublishedBooks(repository).execute(estado=estado)
 
 
+@router.patch("/books/{book_id}", response_model=BookOut)
+async def update_book(
+    book_id: int,
+    payload: BookUpdate,
+    user=Depends(get_current_user),
+    repository: SqlAlchemyTransactionRepository = Depends(get_repository),
+) -> Transaction:
+    """Edit an existing book's title/price/style/summary."""
+    use_case = UpdateBook(repository, RedisEventPublisher())
+    try:
+        return await use_case.execute(
+            book_id=book_id,
+            titulo=payload.titulo,
+            precio=payload.precio,
+            estilo=payload.estilo,
+            resumen=payload.resumen,
+        )
+    except BookNotFoundError as exc:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, str(exc)) from exc
+
+
+@router.post("/books/{book_id}/publish", response_model=BookOut)
+async def publish_book(
+    book_id: int,
+    user=Depends(get_current_user),
+    repository: SqlAlchemyTransactionRepository = Depends(get_repository),
+) -> Transaction:
+    """Make a ready book visible in the storefront."""
+    use_case = PublishBook(repository, RedisEventPublisher())
+    try:
+        return await use_case.execute(book_id=book_id)
+    except BookNotFoundError as exc:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, str(exc)) from exc
+    except BookNotSellableError as exc:
+        raise HTTPException(status.HTTP_409_CONFLICT, str(exc)) from exc
+
+
 @router.get("/sales", response_model=SalesResponse)
 async def list_sales(
     user=Depends(get_current_user),
@@ -194,3 +245,12 @@ async def stream(
 
     with suppress(WebSocketDisconnect):
         await forward_events(websocket, user_id)
+
+
+@router.websocket("/storefront/stream")
+async def storefront_stream(websocket: WebSocket) -> None:
+    """Public real-time catalog stream (no auth): pushes catalog changes such as
+    a newly published book so the storefront updates without a reload."""
+    await websocket.accept()
+    with suppress(WebSocketDisconnect):
+        await forward_storefront_events(websocket)

@@ -6,7 +6,9 @@ from pydantic import BaseModel, Field
 
 from app.contexts.settings.domain import DEFAULT_SOURCE, DEFAULT_STYLE
 
-SourceLiteral = Literal["Wikipedia (ES)", "Wikipedia (EN)", "Wikipedia (PT)"]
+SourceLiteral = Literal[
+    "Wikipedia + DBpedia (ES)", "Wikipedia (ES)", "Wikipedia (EN)", "Wikipedia (PT)"
+]
 StyleLiteral = Literal["Formal", "Casual", "Técnico", "Ejecutivo", "Divertido"]
 
 
